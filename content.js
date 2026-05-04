@@ -43,7 +43,7 @@ const floatingWindowCSS = `
     z-index: 9999;
     font-family: Arial, sans-serif;
     overflow: hidden;
-    transition: all 0.3s ease-in-out;
+    // transition: all 0.3s ease-in-out;
   }
   /* Minimized state: transforms into a tab on the right edge */
   #extension-floating-window.minimized {
@@ -183,11 +183,11 @@ function createFloatingWindow() {
   header.addEventListener("mousedown", startDrag);
   // Throttle mousemove event for performance
   // document.addEventListener('mousemove', throttle(dragWindow, 30)); // Throttle to ~60fps
-  // document.addEventListener('mousemove', dragWindow);
-  document.addEventListener(
-    "mousemove",
-    throttle(captureMouse, captureInterval),
-  );
+  document.addEventListener("mousemove", dragWindow);
+  // document.addEventListener(
+  //   "mousemove",
+  //   throttle(captureMouse, captureInterval),
+  // );
   document.addEventListener("mouseup", stopDrag);
   // document.addEventListener('mouseup', dragWindow);
 }
@@ -231,14 +231,20 @@ function captureMouse(e) {
   mouse.y = e.y;
 }
 
-function moveWindow(e) {
+function moveWindow(e, captureMouse = true) {
   // console.log("dragging");
 
   // Calculate new position based on mouse movement and offset
-  // let newX = e.clientX - offsetX;
-  // let newY = e.clientY - offsetY;
-  let newX = mouse.x - offsetX;
-  let newY = mouse.y - offsetY;
+  let newX;
+  let newY;
+  if (captureMouse) {
+    newX = e.clientX - offsetX;
+    newY = e.clientY - offsetY;
+  } else {
+    // mouse position is captured somewhere else
+    newX = mouse.x - offsetX;
+    newY = mouse.y - offsetY;
+  }
 
   // Get viewport dimensions
   const viewportWidth = window.innerWidth;
