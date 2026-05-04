@@ -3,6 +3,12 @@
   "name": "Selectable Video Time",
   "version": "1.0",
   "description": "Makes the video current time display selectable.",
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html"
+  },
   "permissions": [
     "scripting",
     "activeTab"
@@ -17,6 +23,9 @@
       ],
       "css": [
         "styles.css"
+      ],
+      "js": [
+        "content.js"
       ],
       "run_at": "document_start"
     }
