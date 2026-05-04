@@ -3,20 +3,19 @@
 // Helper function for throttling calls
 function throttle(callback, interval) {
   let waiting = false;
-  return function(...args) {
+  return function (...args) {
     if (!waiting) {
       callback.apply(this, args);
       // waiting = true;
       // requestAnimationFrame(() => {
       //   waiting = false;
       // });
-      setTimeout(() => {
-      }, interval);
+      setTimeout(() => {}, interval);
     }
   };
 }
 
-// Floating window structure - timestamp is now inside the copy button
+// Floating window structure
 const floatingWindowHTML = `
   <div id="extension-floating-window">
     <div id="extension-window-header">
@@ -31,11 +30,12 @@ const floatingWindowHTML = `
 // Floating window styles
 const floatingWindowCSS = `
   #extension-floating-window {
+    display: flex;
     position: fixed;
     top: 20px;
     right: 20px;
-    width: 250px;
-    height: 100px;
+    width: 200px;
+    height: 50px;
     background-color: rgba(0, 0, 0, 0.8);
     color: white;
     border-radius: 8px;
@@ -129,65 +129,79 @@ let timestampDisplayElement;
 let copyButtonElement;
 let hideRevealButtonElement;
 let floatingWindowElement;
+let mouse = { x: 0, y: 0 };
+let captureInterval = 50;
+let updateTimestamp;
 
 // Add a listener for messages from the extension popup or background script
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.action === 'toggleFloatingWindow') {
+  if (message.action === "toggleFloatingWindow") {
     toggleWindowVisibility();
     // After toggling, we should send the *new* state back to the popup
     sendResponse({ isVisible: isWindowVisible });
-  } else if (message.action === 'getFloatingWindowVisibility') {
+  } else if (message.action === "getFloatingWindowVisibility") {
     sendResponse({ isVisible: isWindowVisible });
   }
   return true; // Indicates an asynchronous response
 });
 
 function createFloatingWindow() {
-  const styleSheet = document.createElement('style');
-  styleSheet.type = 'text/css';
+  const styleSheet = document.createElement("style");
+  styleSheet.type = "text/css";
   styleSheet.innerText = floatingWindowCSS;
   document.head.appendChild(styleSheet);
 
-  const div = document.createElement('div');
+  const div = document.createElement("div");
   div.innerHTML = floatingWindowHTML;
   document.body.appendChild(div.firstElementChild);
 
-  floatingWindowElement = document.getElementById('extension-floating-window');
-  timestampDisplayElement = document.getElementById('extension-timestamp-display');
-  copyButtonElement = document.getElementById('extension-copy-button');
-  hideRevealButtonElement = document.getElementById('extension-hide-reveal-button');
+  floatingWindowElement = document.getElementById("extension-floating-window");
+  timestampDisplayElement = document.getElementById(
+    "extension-timestamp-display",
+  );
+  copyButtonElement = document.getElementById("extension-copy-button");
+  hideRevealButtonElement = document.getElementById(
+    "extension-hide-reveal-button",
+  );
 
   // Ensure elements are found before adding listeners
-  if (!floatingWindowElement || !timestampDisplayElement || !copyButtonElement || !hideRevealButtonElement) {
-    console.error('Extension: Failed to find essential DOM elements.');
+  if (
+    !floatingWindowElement ||
+    !timestampDisplayElement ||
+    !copyButtonElement ||
+    !hideRevealButtonElement
+  ) {
+    console.error("Extension: Failed to find essential DOM elements.");
     return;
   }
 
-  hideRevealButtonElement.addEventListener('click', toggleWindowVisibility);
-  copyButtonElement.addEventListener('click', copyTimestampToClipboard);
+  hideRevealButtonElement.addEventListener("click", toggleWindowVisibility);
+  copyButtonElement.addEventListener("click", copyTimestampToClipboard);
 
   // Add drag functionality
-  const header = document.getElementById('extension-window-header');
-  header.addEventListener('mousedown', startDrag);
+  const header = document.getElementById("extension-window-header");
+  header.addEventListener("mousedown", startDrag);
   // Throttle mousemove event for performance
   // document.addEventListener('mousemove', throttle(dragWindow, 30)); // Throttle to ~60fps
   // document.addEventListener('mousemove', dragWindow);
-  document.addEventListener('mousemove', throttle(captureMouse, captureInterval));
-  document.addEventListener('mouseup', stopDrag);
+  document.addEventListener(
+    "mousemove",
+    throttle(captureMouse, captureInterval),
+  );
+  document.addEventListener("mouseup", stopDrag);
   // document.addEventListener('mouseup', dragWindow);
-
-  // Add a general click listener to the floating window itself, as a potential workaround
-  // for the disappearance issue observed when the window is not interacted with.
-  floatingWindowElement.addEventListener('click', () => {
-    // This click might help stabilize the window or player elements.
-    updateTimestampDisplay();
-  });
 }
 
 function startDrag(e) {
   // console.log("start dragging")
   // Prevent drag if clicking on buttons within the header
-  if (e.target === hideRevealButtonElement || e.target === copyButtonElement || e.target.parentNode === copyButtonElement) return;
+  if (
+    e.target === hideRevealButtonElement ||
+    e.target === copyButtonElement ||
+    e.target.parentNode === copyButtonElement
+  )
+    return;
+  clearInterval(updateTimestamp);
 
   isDragging = true;
   // Calculate the offset from the mouse pointer to the element's top-left corner
@@ -197,24 +211,27 @@ function startDrag(e) {
   // Store current position to restore later
   initialRight = floatingWindowElement.style.right;
   initialTop = floatingWindowElement.style.top;
-  if (!initialRight || !initialTop || initialRight === 'auto' || initialTop === 'auto') { // Set defaults if not already set or auto
-    initialRight = '20px';
-    initialTop = '20px';
+  if (
+    !initialRight ||
+    !initialTop ||
+    initialRight === "auto" ||
+    initialTop === "auto"
+  ) {
+    // Set defaults if not already set or auto
+    initialRight = "20px";
+    initialTop = "20px";
   }
 
   // Prevent default text selection behavior during drag
   e.preventDefault();
   // console.log("end dragging")
 }
-let mouse = { x: 0, y: 0 }
-let captureInterval = 50;
 function captureMouse(e) {
   mouse.x = e.x;
   mouse.y = e.y;
 }
 
-function dragWindow(e) {
-  if (!isDragging) return;
+function moveWindow(e) {
   // console.log("dragging");
 
   // Calculate new position based on mouse movement and offset
@@ -234,15 +251,19 @@ function dragWindow(e) {
   newY = Math.max(0, Math.min(newY, viewportHeight - windowHeight));
 
   // Update element's position using CSS properties
-  floatingWindowElement.style.left = newX + 'px';
+  floatingWindowElement.style.left = newX + "px";
   // floatingWindowElement.style.transform = `translate3d(${newX}px, ${newY}px, 0)`
-  floatingWindowElement.style.right = 'auto'; // Important: 'right' needs to be 'auto' when positioning with 'left'
-  floatingWindowElement.style.top = newY + 'px';
-  floatingWindowElement.style.bottom = 'auto'; // Important: 'bottom' needs to be 'auto' when positioning with 'top'
+  floatingWindowElement.style.right = "auto"; // Important: 'right' needs to be 'auto' when positioning with 'left'
+  floatingWindowElement.style.top = newY + "px";
+  floatingWindowElement.style.bottom = "auto"; // Important: 'bottom' needs to be 'auto' when positioning with 'top'
 }
 
-function stopDrag() {
-  isDragging = false;
+function dragWindow(e) {
+  if (!isDragging) return;
+  moveWindow(e);
+}
+
+function checkWindow() {
   // When drag stops, revert to using 'right' and 'top' for static positioning
   const currentLeft = parseFloat(floatingWindowElement.style.left);
   const currentTop = parseFloat(floatingWindowElement.style.top);
@@ -253,16 +274,24 @@ function stopDrag() {
   const windowHeight = floatingWindowElement.offsetHeight;
 
   // Check if left/top are valid positions after drag
-  if (!isNaN(currentLeft) && currentLeft >= 0 && currentLeft <= viewportWidth - windowWidth) {
-    floatingWindowElement.style.left = currentLeft + 'px';
+  if (
+    !isNaN(currentLeft) &&
+    currentLeft >= 0 &&
+    currentLeft <= viewportWidth - windowWidth
+  ) {
+    floatingWindowElement.style.left = currentLeft + "px";
   } else {
-    floatingWindowElement.style.left = 'auto'; // Clear if invalid, will fall back to right
+    floatingWindowElement.style.left = "0px";
   }
 
-  if (!isNaN(currentTop) && currentTop >= 0 && currentTop <= viewportHeight - windowHeight) {
-    floatingWindowElement.style.top = currentTop + 'px';
+  if (
+    !isNaN(currentTop) &&
+    currentTop >= 0 &&
+    currentTop <= viewportHeight - windowHeight
+  ) {
+    floatingWindowElement.style.top = currentTop + "px";
   } else {
-    floatingWindowElement.style.top = 'auto'; // Clear if invalid, will fall back to initialTop
+    floatingWindowElement.style.top = viewportHeight - windowHeight + "px"; // Clear if invalid, will fall back to initialTop
   }
 
   // If left/top were cleared or invalid, use stored initial values
@@ -272,25 +301,32 @@ function stopDrag() {
   // if (floatingWindowElement.style.bottom === '' || floatingWindowElement.style.bottom === 'auto') floatingWindowElement.style.bottom = initialTop;
 }
 
+function stopDrag(e) {
+  if (!isDragging) return;
+  isDragging = false;
+  // checkWindow(e);
+  moveWindow(e);
+  updateTimestamp = setInterval(updateTimestampDisplay, 500); // Update every 500ms
+}
+
 function toggleWindowVisibility() {
   isWindowVisible = !isWindowVisible;
   if (isWindowVisible) {
     // Restore window to its previous size and position
-    floatingWindowElement.classList.remove('minimized');
-    hideRevealButtonElement.textContent = '_'; // Restore minimize icon
+    floatingWindowElement.classList.remove("minimized");
+    hideRevealButtonElement.textContent = "_"; // Restore minimize icon
 
     // Restore original dimensions and positioning
-    floatingWindowElement.style.width = '250px'; // Restore original width
-    floatingWindowElement.style.height = '100px'; // Restore auto height
-    floatingWindowElement.style.left = 'auto'; // Ensure it uses right/top positioning
-    floatingWindowElement.style.top = 'auto';
+    floatingWindowElement.style.width = "250px"; // Restore original width
+    floatingWindowElement.style.height = "100px"; // Restore auto height
+    floatingWindowElement.style.left = "auto"; // Ensure it uses right/top positioning
+    floatingWindowElement.style.top = "auto";
     floatingWindowElement.style.right = initialRight;
     floatingWindowElement.style.bottom = initialTop;
-
   } else {
     // Minimize window to a tab
-    floatingWindowElement.classList.add('minimized');
-    hideRevealButtonElement.textContent = '+'; // Change to '+' to indicate it can be expanded
+    floatingWindowElement.classList.add("minimized");
+    hideRevealButtonElement.textContent = "+"; // Change to '+' to indicate it can be expanded
 
     // Store current position before minimizing, to restore later
     const computedStyle = window.getComputedStyle(floatingWindowElement);
@@ -298,18 +334,21 @@ function toggleWindowVisibility() {
     initialTop = computedStyle.top;
 
     // If computed styles are 'auto', fall back to defaults or current inline styles
-    if (initialRight === 'auto' || !initialRight) initialRight = floatingWindowElement.style.right || '20px';
-    if (initialTop === 'auto' || !initialTop) initialTop = floatingWindowElement.style.top || '20px';
+    if (initialRight === "auto" || !initialRight)
+      initialRight = floatingWindowElement.style.right || "20px";
+    if (initialTop === "auto" || !initialTop)
+      initialTop = floatingWindowElement.style.top || "20px";
 
     // Clear inline left/top if they exist from dragging, to allow minimized CSS to take over
-    floatingWindowElement.style.left = '';
-    floatingWindowElement.style.top = '';
+    floatingWindowElement.style.left = "";
+    floatingWindowElement.style.top = "";
   }
 }
 
 function getTimestamp() {
   // Selector for the Video.js current time display element
-  const timestampSelector = '.BH_background .container-player .player .videoframe .video #video-container .video-js .vjs-control-bar .vjs-time-control.vjs-current-time .vjs-current-time-display';
+  const timestampSelector =
+    ".BH_background .container-player .player .videoframe .video #video-container .video-js .vjs-control-bar .vjs-time-control.vjs-current-time .vjs-current-time-display";
   const timeDisplay = document.querySelector(timestampSelector);
   return timeDisplay ? timeDisplay.textContent : null;
 }
@@ -320,49 +359,57 @@ function updateTimestampDisplay() {
     if (timestamp) {
       timestampDisplayElement.textContent = timestamp;
     } else {
-      timestampDisplayElement.textContent = 'Video not active';
+      timestampDisplayElement.textContent = "Video not active";
     }
   } catch (error) {
-    console.error('Extension: Error updating timestamp display:', error);
-    timestampDisplayElement.textContent = 'Error'; // Indicate an error occurred
+    console.error("Extension: Error updating timestamp display:", error);
+    timestampDisplayElement.textContent = "Error"; // Indicate an error occurred
   }
 }
 
 function copyTimestampToClipboard() {
   const timestamp = timestampDisplayElement.textContent;
-  if (timestamp && timestamp !== 'Loading...' && timestamp !== 'Video not active' && timestamp !== 'Error') {
+  if (
+    timestamp &&
+    timestamp !== "Loading..." &&
+    timestamp !== "Video not active" &&
+    timestamp !== "Error"
+  ) {
     const copy = `* [${timestamp}]()`;
-    navigator.clipboard.writeText(copy).then(() => {
-      // Feedback: change button text briefly to 'Copied!'
-      const originalText = copyButtonElement.querySelector('p').textContent;
-      copyButtonElement.querySelector('p').textContent = 'Copied!';
-      setTimeout(() => {
-        copyButtonElement.querySelector('p').textContent = originalText;
-      }, 1500);
-    }).catch(err => {
-      console.error('Extension: Failed to copy timestamp:', err);
-      // Optional: provide error feedback on the display
-      const originalText = copyButtonElement.querySelector('p').textContent;
-      copyButtonElement.querySelector('p').textContent = 'Copy Failed';
-      setTimeout(() => {
-        copyButtonElement.querySelector('p').textContent = originalText;
-      }, 1500);
-    });
+    navigator.clipboard
+      .writeText(copy)
+      .then(() => {
+        // Feedback: change button text briefly to 'Copied!'
+        const originalText = copyButtonElement.querySelector("p").textContent;
+        copyButtonElement.querySelector("p").textContent = "Copied!";
+        setTimeout(() => {
+          copyButtonElement.querySelector("p").textContent = originalText;
+        }, 1500);
+      })
+      .catch((err) => {
+        console.error("Extension: Failed to copy timestamp:", err);
+        // Optional: provide error feedback on the display
+        const originalText = copyButtonElement.querySelector("p").textContent;
+        copyButtonElement.querySelector("p").textContent = "Copy Failed";
+        setTimeout(() => {
+          copyButtonElement.querySelector("p").textContent = originalText;
+        }, 1500);
+      });
   }
 }
 
 // Initial setup
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", () => {
     createFloatingWindow();
     // Start polling for the timestamp
     // Use setInterval with error handling to keep the script running
-    setInterval(updateTimestampDisplay, 500); // Update every 500ms
-    setInterval(dragWindow, 30);
+    updateTimestamp = setInterval(updateTimestampDisplay, 500); // Update every 500ms
+    // setInterval(dragWindow, 30);
   });
 } else {
   // DOM is already ready
   createFloatingWindow();
-  setInterval(updateTimestampDisplay, 500); // Update every 500ms
-  setInterval(dragWindow, 30);
+  updateTimestamp = setInterval(updateTimestampDisplay, 500); // Update every 500ms
+  // setInterval(dragWindow, 30);
 }

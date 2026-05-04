@@ -19,7 +19,7 @@
   "content_scripts": [
     {
       "matches": [
-        "https://ani.gamer.com.tw/animeVideo.php*"
+        "<all_urls>"
       ],
       "css": [
         "styles.css"
