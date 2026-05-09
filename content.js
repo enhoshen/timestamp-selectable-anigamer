@@ -27,100 +27,6 @@ const floatingWindowHTML = `
   </div>
 `;
 
-// Floating window styles
-const floatingWindowCSS = `
-  #extension-floating-window {
-    display: flex;
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    width: 200px;
-    height: 50px;
-    background-color: rgba(0, 0, 0, 0.8);
-    color: white;
-    border-radius: 8px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.4);
-    z-index: 9999;
-    font-family: Arial, sans-serif;
-    overflow: hidden;
-    // transition: all 0.3s ease-in-out;
-  }
-  /* Minimized state: transforms into a tab on the right edge */
-  #extension-floating-window.minimized {
-    width: 250px; /* Reduced width for the tab */
-    height: 100px; /* Fixed height for the tab */
-    right: 0; /* Snap to the right edge */
-    top: 20px; /* Maintain vertical position */
-    box-shadow: 0 0 10px rgba(0,0,0,0.6);
-  }
-  #extension-window-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px;
-    background-color: rgba(0, 0, 0, 0.9);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-    cursor: grab; /* Indicate draggable */
-  }
-  /* Styling for the hide/reveal button to make it a visible box */
-  #extension-hide-reveal-button {
-    background-color: rgba(255, 255, 255, 0.2);
-    border: 1px solid rgba(255, 255, 255, 0.4);
-    color: white;
-    font-size: 1.1em;
-    cursor: pointer;
-    padding: 5px 10px; /* Increased padding */
-    border-radius: 5px;
-    font-weight: bold;
-    width: 60px; /* Fixed width for button */
-    height: 15px; /* Fixed height for button */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    transition: background-color 0.2s ease;
-  }
-  #extension-hide-reveal-button:hover {
-    background-color: rgba(255, 255, 255, 0.4);
-  }
-  /* Style for the copy button which now contains the timestamp */
-  #extension-copy-button {
-    background-color: #4CAF50; /* Green */
-    color: white;
-    border: none;
-    border-radius: 5px;
-    padding: 8px 15px;
-    cursor: pointer;
-    font-size: 0.9em;
-    transition: background-color 0.2s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-grow: 1; /* Allow button to grow to fill available space */
-    margin-left: 10px; /* Space between hide button and copy button */
-  }
-  #extension-copy-button:hover {
-    background-color: #45a049;
-  }
-  #extension-copy-button p {
-    margin: 0; /* Remove default margin from paragraph */
-    font-size: 1.1em;
-    word-break: break-all; /* Ensure long timestamps are broken */
-  }
-  /* Hide content when minimized */
-  #extension-floating-window.minimized #extension-window-header {
-    border-bottom: none;
-    padding: 5px;
-    background-color: rgba(0, 0, 0, 0.7);
-  }
-  #extension-floating-window.minimized #extension-window-header span {
-    display: none; /* Hide title when minimized */
-  }
-  /* Ensure the timestamp text is visible in minimized state if header is shown */
-  #extension-floating-window.minimized #extension-copy-button p {
-      display: block; /* Ensure it's visible if the header is */
-  }
-`;
-
 let isWindowVisible = true;
 let isDragging = false;
 let offsetX, offsetY;
@@ -148,7 +54,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 function createFloatingWindow() {
   const styleSheet = document.createElement("style");
   styleSheet.type = "text/css";
-  styleSheet.innerText = floatingWindowCSS;
   document.head.appendChild(styleSheet);
 
   const div = document.createElement("div");
@@ -217,7 +122,6 @@ function startDrag(e) {
     initialRight === "auto" ||
     initialTop === "auto"
   ) {
-    // Set defaults if not already set or auto
     initialRight = "20px";
     initialTop = "20px";
   }
@@ -258,7 +162,6 @@ function moveWindow(e, captureMouse = true) {
 
   // Update element's position using CSS properties
   floatingWindowElement.style.left = newX + "px";
-  // floatingWindowElement.style.transform = `translate3d(${newX}px, ${newY}px, 0)`
   floatingWindowElement.style.right = "auto"; // Important: 'right' needs to be 'auto' when positioning with 'left'
   floatingWindowElement.style.top = newY + "px";
   floatingWindowElement.style.bottom = "auto"; // Important: 'bottom' needs to be 'auto' when positioning with 'top'
@@ -323,8 +226,6 @@ function toggleWindowVisibility() {
     hideRevealButtonElement.textContent = "_"; // Restore minimize icon
 
     // Restore original dimensions and positioning
-    floatingWindowElement.style.width = "250px"; // Restore original width
-    floatingWindowElement.style.height = "100px"; // Restore auto height
     floatingWindowElement.style.left = "auto"; // Ensure it uses right/top positioning
     floatingWindowElement.style.top = "auto";
     floatingWindowElement.style.right = initialRight;
@@ -408,14 +309,9 @@ function copyTimestampToClipboard() {
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", () => {
     createFloatingWindow();
-    // Start polling for the timestamp
-    // Use setInterval with error handling to keep the script running
-    updateTimestamp = setInterval(updateTimestampDisplay, 500); // Update every 500ms
-    // setInterval(dragWindow, 30);
+    updateTimestamp = setInterval(updateTimestampDisplay, 500);
   });
 } else {
-  // DOM is already ready
   createFloatingWindow();
-  updateTimestamp = setInterval(updateTimestampDisplay, 500); // Update every 500ms
-  // setInterval(dragWindow, 30);
+  updateTimestamp = setInterval(updateTimestampDisplay, 500);
 }

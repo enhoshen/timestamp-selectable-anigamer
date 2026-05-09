@@ -5,3 +5,102 @@
   -moz-user-select: text !important;    /* For Firefox */
   -ms-user-select: text !important;     /* For Internet Explorer/Edge */
 }
+#extension-floating-window {
+  display: flex;
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  /* width: 100px; */
+  /* height: 50px; */
+  background-color:, 0, 0, 0.8);
+  color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+  z-index: 9999;
+  font-family: Arial, sans-serif;
+  overflow: hidden;
+  /* if transition is enabled along with draggable element
+   * on mouse move event, it will introduce awful delay on 
+   * every tiny mouse movement.
+   * I found out this is the culprit for massive delay for
+   * draggable element because even if the element is updated
+   * only once on mouse up event, it still has a initial delay
+   * and smooth moving animation where it should be an instant
+   * poistion change. */
+  /* transition: all 0.3s ease-in-out; */
+}
+/* Minimized state: transforms into a tab on the right edge */
+#extension-floating-window.minimized {
+  /* width: 250px; */
+  /* height: 100px; */
+  display: flex;
+  right: 0; /* Snap to the right edge */
+  top: 20px; /* Maintain vertical position */
+  box-shadow: 0 0 10px rgba(0,0,0,0.6);
+}
+#extension-window-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  background-color: rgba(0, 0, 0, 0.9);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  cursor: grab; /* Indicate draggable */
+}
+/* Styling for the hide/reveal button to make it a visible box */
+#extension-hide-reveal-button {
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px  rgba(255, 255, 255, 0.4);
+  color: white;
+  font-size: 1.1em;
+  cursor: pointer;
+  padding: 5px 5px;
+  border-radius: 5px;
+  font-weight: bold;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: background-color 0.2s ease;
+}
+#extension-hide-reveal-button:hover {
+  background-color: rgba(255, 255, 255, 0.4);
+}
+#extension-copy-button {
+  background-color: #4CAF50; /* Green */
+  color: white;
+  border: none;
+  border-radius: 5px;
+  padding: 8px 15px;
+  cursor: pointer;
+  font-size: 0.9em;
+  transition: background-color 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-grow: 1; /* Allow button to grow to fill available space */
+  margin-left: 10px; /* Space between hide button and copy button */
+}
+#extension-copy-button:hover {
+  background-color: #45a049;
+}
+#extension-copy-button p {
+  margin: 0; /* Remove default margin from paragraph */
+  font-size: 1.1em;
+  word-break: break-all; /* Ensure long timestamps are broken */
+}
+/* Hide content when minimized */
+#extension-floating-window.minimized #extension-window-header {
+  border-bottom: none;
+  padding: 5px;
+  background-color: rgba(0, 0, 0, 0.7);
+}
+#extension-floating-window.minimized #extension-window-header span {
+  display: none; /* Hide title when minimized */
+}
+/* Ensure the timestamp text is visible in minimized state if header is shown */
+#extension-floating-window.minimized #extension-copy-button p {
+    display: block; /* Ensure it's visible if the header is */
+}
+
