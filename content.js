@@ -38,6 +38,7 @@ let floatingWindowElement;
 let mouse = { x: 0, y: 0 };
 let captureInterval = 50;
 let updateTimestamp;
+let previousWindowSize = { x: 0, y: 0 };
 
 // Add a listener for messages from the extension popup or background script
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -52,6 +53,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 function createFloatingWindow() {
+  updateWindowSize();
   const styleSheet = document.createElement("style");
   styleSheet.type = "text/css";
   document.head.appendChild(styleSheet);
@@ -95,6 +97,7 @@ function createFloatingWindow() {
   //   throttle(captureMouse, captureInterval),
   // );
   document.addEventListener("mouseup", stopDrag);
+  window.addEventListener("resize", floatingWindowOnResize);
   // document.addEventListener('mouseup', dragWindow);
 }
 
@@ -177,9 +180,26 @@ function setElementPos(element, x, y) {
 }
 
 function setElementBottomLeft(element, padding = 20) {
-  const viewportWidth = window.innerWidth;
   const viewportHeight = window.innerHeight;
   setElementPos(element, padding, viewportHeight - padding);
+}
+
+function floatingWindowOnResize(e) {
+  // remember and keep the distance to the nearest window edges
+  let left = floatingWindowElement.getBoundingClientRect().left;
+  let xdiff = previousWindowSize.x - left;
+  let top = floatingWindowElement.getBoundingClientRect().top;
+  let ydiff = previousWindowSize.y - top;
+  xdiff = Math.max(0, xdiff);
+  ydiff = Math.max(0, ydiff);
+  let newX = xdiff > window.innerWidth / 2 ? left : window.innerWidth - xdiff;
+  let newY = ydiff > window.innerHeight / 2 ? top : window.innerHeight - ydiff;
+  setElementPos(floatingWindowElement, newX, newY);
+  updateWindowSize();
+}
+
+function updateWindowSize() {
+  previousWindowSize = { x: window.innerWidth, y: window.innerHeight };
 }
 
 function dragWindow(e) {
