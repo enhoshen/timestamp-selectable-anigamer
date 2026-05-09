@@ -61,6 +61,7 @@ function createFloatingWindow() {
   document.body.appendChild(div.firstElementChild);
 
   floatingWindowElement = document.getElementById("extension-floating-window");
+  setElementBottomLeft(floatingWindowElement);
   timestampDisplayElement = document.getElementById(
     "extension-timestamp-display",
   );
@@ -136,8 +137,6 @@ function captureMouse(e) {
 }
 
 function moveWindow(e, captureMouse = true) {
-  // console.log("dragging");
-
   // Calculate new position based on mouse movement and offset
   let newX;
   let newY;
@@ -150,21 +149,37 @@ function moveWindow(e, captureMouse = true) {
     newY = mouse.y - offsetY;
   }
 
-  // Get viewport dimensions
+  [newX, newY] = boundaryCheck(newX, newY);
+
+  // Update element's position using CSS properties
+  setElementPos(floatingWindowElement, newX, newY);
+}
+
+function boundaryCheck(x, y) {
+  let newX, newY;
   const viewportWidth = window.innerWidth;
   const viewportHeight = window.innerHeight;
   const windowWidth = floatingWindowElement.offsetWidth;
   const windowHeight = floatingWindowElement.offsetHeight;
 
-  // Constrain movement within viewport bounds
-  newX = Math.max(0, Math.min(newX, viewportWidth - windowWidth));
-  newY = Math.max(0, Math.min(newY, viewportHeight - windowHeight));
+  newX = Math.max(0, Math.min(x, viewportWidth - windowWidth));
+  newY = Math.max(0, Math.min(y, viewportHeight - windowHeight));
+  return [newX, newY];
+}
 
-  // Update element's position using CSS properties
-  floatingWindowElement.style.left = newX + "px";
-  floatingWindowElement.style.right = "auto"; // Important: 'right' needs to be 'auto' when positioning with 'left'
-  floatingWindowElement.style.top = newY + "px";
-  floatingWindowElement.style.bottom = "auto"; // Important: 'bottom' needs to be 'auto' when positioning with 'top'
+function setElementPos(element, x, y) {
+  // console.log(`${left}px ${top}px`);
+  [x, y] = boundaryCheck(x, y);
+  element.style.left = x + "px";
+  element.style.right = "auto"; // Important: 'right' needs to be 'auto' when positioning with 'left'
+  element.style.top = y + "px";
+  element.style.bottom = "auto"; // Important: 'bottom' needs to be 'auto' when positioning with 'top'
+}
+
+function setElementBottomLeft(element, padding = 20) {
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+  setElementPos(element, padding, viewportHeight - padding);
 }
 
 function dragWindow(e) {
